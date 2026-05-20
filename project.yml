@@ -12,6 +12,8 @@ targets:
       - path: Sources
     resources:
       - path: Resources
+    dependencies:
+      - sdk: WebKit.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.myzone.app

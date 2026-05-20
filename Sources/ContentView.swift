@@ -32,8 +32,9 @@ struct ContentView: View {
 
             if isLoading {
                 ProgressView()
-                    .progressViewStyle(LinearProgressViewStyle(tint: Color(hex: "00E5FF")))
-                    .frame(maxWidth: .infinity, maxHeight: 3, alignment: .top)
+                    .progressViewStyle(LinearProgressViewStyle())
+                    .tint(Color(red: 0, green: 0.898, blue: 1.0))
+                    .frame(maxWidth: .infinity, maxHeight: 3)
             }
         }
         .alert("خطأ في الاتصال", isPresented: $showError) {
@@ -48,7 +49,8 @@ struct ContentView: View {
 struct SplashView: View {
     var body: some View {
         ZStack {
-            Color(hex: "0D0D1A").ignoresSafeArea()
+            Color(red: 0.05, green: 0.05, blue: 0.1)
+                .ignoresSafeArea()
 
             VStack(spacing: 20) {
                 Spacer()
@@ -66,23 +68,11 @@ struct SplashView: View {
                 Spacer()
 
                 ProgressView()
-                    .tint(Color(hex: "00BFFF"))
+                    .tint(Color(red: 0, green: 0.75, blue: 1.0))
                     .scaleEffect(1.2)
                     .padding(.bottom, 50)
             }
             .padding(.horizontal, 32)
         }
-    }
-}
-
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let r = Double((int >> 16) & 0xFF) / 255
-        let g = Double((int >> 8) & 0xFF) / 255
-        let b = Double(int & 0xFF) / 255
-        self.init(red: r, green: g, blue: b)
     }
 }
