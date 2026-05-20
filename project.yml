@@ -3,7 +3,6 @@ options:
   bundleIdPrefix: com.myzone
   deploymentTarget:
     iOS: "15.0"
-  xcodeVersion: "15"
 
 targets:
   MyZoneApp:
@@ -25,3 +24,5 @@ targets:
         CODE_SIGN_STYLE: Manual
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGN_IDENTITY: ""
+        DEVELOPMENT_TEAM: ""

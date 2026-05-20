@@ -25,30 +25,28 @@ jobs:
           from PIL import Image
           import os, json
 
-          src = "logo_app.png"
           out_dir = "Resources/Assets.xcassets/AppIcon.appiconset"
           logo_dir = "Resources/Assets.xcassets/logo.imageset"
           os.makedirs(logo_dir, exist_ok=True)
 
-          if os.path.exists(src):
-              img = Image.open(src).convert("RGBA")
-              # 1024x1024 app icon (no alpha for App Store)
-              icon = Image.new("RGB", (1024, 1024), (13, 13, 26))
-              icon.paste(img.resize((900, 900), Image.LANCZOS), (62, 62), img.resize((900, 900), Image.LANCZOS))
-              icon.save(f"{out_dir}/icon_1024.png", "PNG")
-              print("App icon saved")
+          if os.path.exists("logo_app.png"):
+              img = Image.open("logo_app.png").convert("RGBA")
+              bg = Image.new("RGB", (1024, 1024), (13, 13, 26))
+              resized = img.resize((900, 900), Image.LANCZOS)
+              bg.paste(resized, (62, 62), resized)
+              bg.save(f"{out_dir}/icon_1024.png", "PNG")
+              print("App icon 1024x1024 saved")
 
-          logo_src = "logo.png"
-          if os.path.exists(logo_src):
-              logo = Image.open(logo_src).convert("RGBA")
+          if os.path.exists("logo.png"):
+              logo = Image.open("logo.png").convert("RGBA")
               logo.save(f"{logo_dir}/logo.png", "PNG")
-              contents = {
-                "images": [{"idiom": "universal", "filename": "logo.png", "scale": "1x"}],
-                "info": {"author": "xcode", "version": 1}
-              }
               with open(f"{logo_dir}/Contents.json", "w") as f:
-                  json.dump(contents, f, indent=2)
-              print("Logo image saved")
+                  import json
+                  json.dump({
+                      "images": [{"idiom": "universal", "filename": "logo.png", "scale": "1x"}],
+                      "info": {"author": "xcode", "version": 1}
+                  }, f, indent=2)
+              print("Splash logo saved")
           EOF
 
       - name: Install xcodegen
@@ -57,30 +55,33 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
-
-      - name: Build unsigned IPA
+      - name: Build app (no signing)
         run: |
-          xcodebuild archive \
+          xcodebuild \
             -project MyZoneApp.xcodeproj \
             -scheme MyZoneApp \
             -configuration Release \
             -sdk iphoneos \
-            -archivePath build/MyZoneApp.xcarchive \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath ./build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            | xcpretty || true
+            DEVELOPMENT_TEAM="" \
+            build
 
-          mkdir -p build/Payload
-          cp -r "build/MyZoneApp.xcarchive/Products/Applications/MyZoneApp.app" build/Payload/
-          cd build && zip -r MyZoneApp.ipa Payload/
-          echo "IPA created: $(du -sh MyZoneApp.ipa)"
+      - name: Package IPA
+        run: |
+          APP=$(find ./build -name "*.app" -not -path "*simulator*" | head -1)
+          echo "Found app: $APP"
+          mkdir -p Payload
+          cp -r "$APP" Payload/
+          zip -r MyZoneApp.ipa Payload/
+          ls -lh MyZoneApp.ipa
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: MyZone-iOS.ipa
-          path: build/MyZoneApp.ipa
+          path: MyZoneApp.ipa
           retention-days: 30
