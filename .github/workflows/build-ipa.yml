@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Generate app icons
+      - name: Generate icons
         run: |
           pip install Pillow -q
           python - <<'EOF'
@@ -32,10 +32,10 @@ jobs:
           if os.path.exists("logo_app.png"):
               img = Image.open("logo_app.png").convert("RGBA")
               bg = Image.new("RGB", (1024, 1024), (13, 13, 26))
-              resized = img.resize((900, 900), Image.LANCZOS)
-              bg.paste(resized, (62, 62), resized)
+              r = img.resize((900, 900), Image.LANCZOS)
+              bg.paste(r, (62, 62), r)
               bg.save(f"{out_dir}/icon_1024.png", "PNG")
-              print("App icon saved")
+              print("icon saved")
 
           if os.path.exists("logo.png"):
               logo = Image.open("logo.png").convert("RGBA")
@@ -43,31 +43,21 @@ jobs:
               with open(f"{logo_dir}/Contents.json", "w") as f:
                   json.dump({
                     "images": [
-                      {"idiom": "universal", "scale": "1x", "filename": "logo.png"},
-                      {"idiom": "universal", "scale": "2x"},
-                      {"idiom": "universal", "scale": "3x"}
+                      {"idiom":"universal","scale":"1x","filename":"logo.png"},
+                      {"idiom":"universal","scale":"2x"},
+                      {"idiom":"universal","scale":"3x"}
                     ],
-                    "info": {"author": "xcode", "version": 1}
+                    "info": {"author":"xcode","version":1}
                   }, f, indent=2)
-              print("Splash logo saved")
+              print("logo saved")
           EOF
 
-      - name: Install xcodegen
-        run: brew install xcodegen
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Diagnose project
+      - name: Verify project
         run: |
           echo "=== Xcode version ==="
           xcodebuild -version
-          echo "=== Available schemes ==="
-          xcodebuild -list -project MyZoneApp.xcodeproj 2>&1
-          echo "=== Source files ==="
-          ls Sources/
-          echo "=== Config ==="
-          ls Config/
+          echo "=== Project schemes ==="
+          xcodebuild -list -project MyZoneApp.xcodeproj
 
       - name: Build app
         run: |
@@ -83,13 +73,12 @@ jobs:
             DEVELOPMENT_TEAM="" \
             build \
             2>&1 | tee build.log
-          echo "Exit: ${PIPESTATUS[0]}"
-          grep -E "^.*(error:|BUILD FAILED)" build.log | tail -30 || true
+          echo "Build exit: ${PIPESTATUS[0]}"
 
       - name: Package IPA
         run: |
           APP=$(find ./DerivedData -name "*.app" -not -path "*simulator*" | head -1)
-          echo "App path: $APP"
+          echo "App: $APP"
           mkdir -p Payload
           cp -r "$APP" Payload/
           zip -r MyZoneApp.ipa Payload/
@@ -102,7 +91,7 @@ jobs:
           path: MyZoneApp.ipa
           retention-days: 30
 
-      - name: Upload build log (always)
+      - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
