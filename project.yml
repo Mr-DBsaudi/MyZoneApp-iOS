@@ -1,0 +1,27 @@
+name: MyZoneApp
+options:
+  bundleIdPrefix: com.myzone
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "15"
+
+targets:
+  MyZoneApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    resources:
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.myzone.app
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_FILE: Sources/Info.plist
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"

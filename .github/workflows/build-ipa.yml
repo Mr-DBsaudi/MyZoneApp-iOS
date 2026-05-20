@@ -1,0 +1,86 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python for icon generation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate app icons from logo_app.png
+        run: |
+          pip install Pillow -q
+          python - <<'EOF'
+          from PIL import Image
+          import os, json
+
+          src = "logo_app.png"
+          out_dir = "Resources/Assets.xcassets/AppIcon.appiconset"
+          logo_dir = "Resources/Assets.xcassets/logo.imageset"
+          os.makedirs(logo_dir, exist_ok=True)
+
+          if os.path.exists(src):
+              img = Image.open(src).convert("RGBA")
+              # 1024x1024 app icon (no alpha for App Store)
+              icon = Image.new("RGB", (1024, 1024), (13, 13, 26))
+              icon.paste(img.resize((900, 900), Image.LANCZOS), (62, 62), img.resize((900, 900), Image.LANCZOS))
+              icon.save(f"{out_dir}/icon_1024.png", "PNG")
+              print("App icon saved")
+
+          logo_src = "logo.png"
+          if os.path.exists(logo_src):
+              logo = Image.open(logo_src).convert("RGBA")
+              logo.save(f"{logo_dir}/logo.png", "PNG")
+              contents = {
+                "images": [{"idiom": "universal", "filename": "logo.png", "scale": "1x"}],
+                "info": {"author": "xcode", "version": 1}
+              }
+              with open(f"{logo_dir}/Contents.json", "w") as f:
+                  json.dump(contents, f, indent=2)
+              print("Logo image saved")
+          EOF
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Build unsigned IPA
+        run: |
+          xcodebuild archive \
+            -project MyZoneApp.xcodeproj \
+            -scheme MyZoneApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/MyZoneApp.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            | xcpretty || true
+
+          mkdir -p build/Payload
+          cp -r "build/MyZoneApp.xcarchive/Products/Applications/MyZoneApp.app" build/Payload/
+          cd build && zip -r MyZoneApp.ipa Payload/
+          echo "IPA created: $(du -sh MyZoneApp.ipa)"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyZone-iOS.ipa
+          path: build/MyZoneApp.ipa
+          retention-days: 30
