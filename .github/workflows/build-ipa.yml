@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python for icon generation
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -56,62 +56,56 @@ jobs:
         run: brew install xcodegen
 
       - name: Generate Xcode project
-        run: |
-          xcodegen generate
-          echo "=== Generated project ==="
-          ls -la MyZoneApp.xcodeproj/
+        run: xcodegen generate
 
-      - name: Show available Xcode
+      - name: Diagnose project
         run: |
-          xcode-select -p
+          echo "=== Xcode version ==="
           xcodebuild -version
+          echo "=== Available schemes ==="
+          xcodebuild -list -project MyZoneApp.xcodeproj 2>&1
+          echo "=== Source files ==="
+          ls Sources/
+          echo "=== Config ==="
+          ls Config/
 
       - name: Build app
-        id: build_step
-        continue-on-error: true
         run: |
           xcodebuild \
             -project MyZoneApp.xcodeproj \
             -scheme MyZoneApp \
             -configuration Release \
             -sdk iphoneos \
+            -derivedDataPath ./DerivedData \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM="" \
+            build \
             2>&1 | tee build.log
-
-          BUILD_RESULT=${PIPESTATUS[0]}
-
-          echo ""
-          echo "====== BUILD ERRORS ======"
-          grep -E "error:|BUILD FAILED|warning:" build.log | head -30 || true
-          echo "=========================="
-
-          exit $BUILD_RESULT
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
-          retention-days: 3
+          echo "Exit: ${PIPESTATUS[0]}"
+          grep -E "^.*(error:|BUILD FAILED)" build.log | tail -30 || true
 
       - name: Package IPA
-        if: steps.build_step.outcome == 'success'
         run: |
-          APP=$(find . -name "*.app" -not -path "*simulator*" -not -path "*.xcarchive*" | head -1)
-          echo "Found app: $APP"
+          APP=$(find ./DerivedData -name "*.app" -not -path "*simulator*" | head -1)
+          echo "App path: $APP"
           mkdir -p Payload
           cp -r "$APP" Payload/
           zip -r MyZoneApp.ipa Payload/
           ls -lh MyZoneApp.ipa
 
       - name: Upload IPA
-        if: steps.build_step.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: MyZone-iOS.ipa
           path: MyZoneApp.ipa
           retention-days: 30
+
+      - name: Upload build log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 3
