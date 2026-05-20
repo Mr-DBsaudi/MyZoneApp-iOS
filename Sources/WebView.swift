@@ -4,11 +4,9 @@ import WebKit
 struct WebView: UIViewRepresentable {
     let url: URL
     @Binding var isLoading: Bool
-    @Binding var error: Error?
+    @Binding var showError: Bool
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -19,9 +17,7 @@ struct WebView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
-
-        let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)
-        webView.load(request)
+        webView.load(URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad))
         return webView
     }
 
@@ -29,27 +25,25 @@ struct WebView: UIViewRepresentable {
 
     class Coordinator: NSObject, WKNavigationDelegate {
         var parent: WebView
+        init(_ parent: WebView) { self.parent = parent }
 
-        init(_ parent: WebView) {
-            self.parent = parent
-        }
-
-        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation _: WKNavigation!) {
             parent.isLoading = true
+            parent.showError = false
         }
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
             parent.isLoading = false
         }
 
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        func webView(_ webView: WKWebView, didFail _: WKNavigation!, withError _: Error) {
             parent.isLoading = false
-            parent.error = error
+            parent.showError = true
         }
 
-        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError _: Error) {
             parent.isLoading = false
-            parent.error = error
+            parent.showError = true
         }
     }
 }

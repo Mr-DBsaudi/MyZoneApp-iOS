@@ -3,7 +3,6 @@ import SwiftUI
 struct ContentView: View {
     @State private var showSplash = true
     @State private var isLoading = false
-    @State private var error: Error?
     @State private var showError = false
 
     private let targetURL = URL(string: "https://link.my-zone.space")!
@@ -28,26 +27,20 @@ struct ContentView: View {
 
     var mainView: some View {
         ZStack(alignment: .top) {
-            WebView(url: targetURL, isLoading: $isLoading, error: $error)
+            WebView(url: targetURL, isLoading: $isLoading, showError: $showError)
                 .ignoresSafeArea()
-                .onChange(of: error) { newError in
-                    showError = newError != nil
-                }
 
             if isLoading {
                 ProgressView()
-                    .progressViewStyle(LinearProgressViewStyle(tint: Color(hex: "#00E5FF")))
-                    .frame(height: 3)
+                    .progressViewStyle(LinearProgressViewStyle(tint: Color(hex: "00E5FF")))
+                    .frame(maxWidth: .infinity, maxHeight: 3, alignment: .top)
             }
         }
-        .alert("Connection Error", isPresented: $showError) {
-            Button("Retry") {
-                error = nil
-                showError = false
-            }
-            Button("Cancel", role: .cancel) {}
+        .alert("خطأ في الاتصال", isPresented: $showError) {
+            Button("إعادة المحاولة") { showError = false }
+            Button("إلغاء", role: .cancel) {}
         } message: {
-            Text("Unable to connect. Please check your internet connection.")
+            Text("تعذّر الاتصال. تحقق من اتصالك بالإنترنت.")
         }
     }
 }
@@ -55,8 +48,7 @@ struct ContentView: View {
 struct SplashView: View {
     var body: some View {
         ZStack {
-            Color(hex: "#0D0D1A")
-                .ignoresSafeArea()
+            Color(hex: "0D0D1A").ignoresSafeArea()
 
             VStack(spacing: 20) {
                 Spacer()
@@ -64,7 +56,7 @@ struct SplashView: View {
                 Image("logo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 280)
+                    .frame(maxWidth: 280)
 
                 Text("هويتك الرقمية في رابط واحد")
                     .font(.system(size: 18, weight: .bold))
@@ -74,7 +66,7 @@ struct SplashView: View {
                 Spacer()
 
                 ProgressView()
-                    .tint(Color(hex: "#00BFFF"))
+                    .tint(Color(hex: "00BFFF"))
                     .scaleEffect(1.2)
                     .padding(.bottom, 50)
             }
